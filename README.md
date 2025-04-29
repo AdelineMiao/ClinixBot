@@ -1,6 +1,6 @@
 # ClinixBot: Intelligent Medical Assistant
 
-![ClinixBot Logo](https://via.placeholder.com/150x150.png?text=ClinixBot)
+
 
 ## Overview
 
