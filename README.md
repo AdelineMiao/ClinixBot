@@ -46,7 +46,17 @@ ClinixBot is an intelligent medical assistant web application designed to provid
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file in the root directory and add your OpenAI API key:
+4. Fix compatibility issues (important!):
+   ```bash
+   # Install langchain-community for updated components
+   pip install langchain-community
+   
+   # Reinstall numpy to fix compatibility issues
+   pip uninstall -y numpy
+   pip install numpy==1.26.4
+   ```
+
+5. Create a `.env` file in the root directory and add your OpenAI API key:
    ```
    OPENAI_API_KEY=your_openai_api_key_here
    ```
