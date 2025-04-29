@@ -134,10 +134,6 @@ This application uses FAISS for vector store serialization. By default, it rebui
 
 ClinixBot provides preliminary diagnostic references only and cannot replace professional medical diagnosis and treatment advice. For serious symptoms, please seek immediate medical attention.
 
-## License
-
-[Your License Here]
-
 ## Contributors
 
 - Adeline Miao
