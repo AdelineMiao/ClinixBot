@@ -46,8 +46,7 @@ ClinixBot is an intelligent medical assistant web application designed to provid
    - **Windows PowerShell**:
      ```powershell
      Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-     .
-env\Scripts\Activate.ps1
+     .env\Scripts\Activate.ps1
      ```
 
    - **Windows CMD**:
