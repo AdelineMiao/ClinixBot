@@ -35,27 +35,34 @@ ClinixBot is an intelligent medical assistant web application designed to provid
    cd ClinixBot
    ```
 
-2. Create a virtual environment and activate it:
+2. Create a virtual environment:
+
    ```bash
    python -m venv venv
-   source venv/bin/activate
-   # On Windows, use:
-   venv\Scripts\activate
    ```
 
-3. Install dependencies:
+3. Activate the virtual environment:
+
+   - **Windows PowerShell**:
+     ```powershell
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+     .
+env\Scripts\Activate.ps1
+     ```
+
+   - **Windows CMD**:
+     ```cmd
+     venv\Scripts ctivate.bat
+     ```
+
+   - **macOS/Linux**:
+     ```bash
+     source venv/bin/activate
+     ```
+
+4. Install dependencies:
    ```bash
    pip install -r requirements.txt
-   ```
-
-4. Fix compatibility issues (important!):
-   ```bash
-   # Install langchain-community for updated components
-   pip install langchain-community
-   
-   # Reinstall numpy to fix compatibility issues
-   pip uninstall -y numpy
-   pip install numpy==1.26.4
    ```
 
 5. Create a `.env` file in the root directory and add your OpenAI API key:
