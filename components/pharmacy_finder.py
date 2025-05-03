@@ -12,10 +12,11 @@ from translations import translations
 
 class PharmacyFinder:
     def __init__(self, lang="zh"):
-        self.api_key = "PHARMACY_API_KEY"  # 这里需要替换为真实的API密钥
+        # Add API key from second file
+        self.api_key = "PHARMACY_API_KEY"
         self.lang = lang
         self.t = translations
-        
+
         # Default location
         default_lat = 41.306023
         default_lng = -72.925615
@@ -31,9 +32,9 @@ class PharmacyFinder:
         
         # Generate more pharmacies around the default location
         self.pharmacies = self.base_pharmacies + self._generate_nearby_pharmacies(default_lat, default_lng, 15)
-    
+
     def _get_user_location(self):
-        """获取用户位置"""
+        """Gets the user's location"""
         t = self.t.pharmacy[self.lang]
         ui = self.t.ui[self.lang]
         
@@ -57,18 +58,17 @@ class PharmacyFinder:
             
         # Check if location is in URL parameters
         try:
-            query_params = st.experimental_get_query_params()
+            query_params = st.query_params
             
             if 'lat' in query_params and 'lng' in query_params:
                 try:
-                    lat = float(query_params['lat'][0])
-                    lng = float(query_params['lng'][0])
+                    lat = float(query_params['lat'])
+                    lng = float(query_params['lng'])
                     st.session_state.user_location = {"lat": lat, "lng": lng}
                     st.success(ui["location_acquired"])
                 except:
                     # Invalid parameters, use default
                     if 'user_location' not in st.session_state:
-
                         st.session_state.user_location = {"lat": 41.306023, "lng": -72.925615}
                         st.warning(ui["location_default"])
             elif 'user_location' not in st.session_state:
@@ -146,10 +146,16 @@ class PharmacyFinder:
         
         distance = R * c
         return round(distance, 1)  # Round to 1 decimal place
-    
+
     def _search_nearby_pharmacies(self, user_location, medication=None, radius=5):
         """Search for nearby pharmacies using OpenStreetMap's Overpass API"""
         
+        # Try to use API if available
+        if hasattr(self, 'api_key') and self.api_key and self.api_key != "PHARMACY_API_KEY":
+            # Here you would implement the API call using self.api_key
+            # For now, we'll use the existing implementation
+            pass
+            
         # Convert radius from km to meters
         radius_meters = radius * 1000
         
@@ -238,67 +244,68 @@ class PharmacyFinder:
         return "Address unavailable"
 
     def _simulate_places_api_results(self, user_location, radius):
-            """Simulate Google Places API results for nearby pharmacies"""
-            import random
+        """Simulate Google Places API results for nearby pharmacies"""
+        import random
+        
+        # Number of pharmacies to generate based on radius
+        # Larger radius = more pharmacies, but with diminishing returns
+        count = min(int(radius * 2), 20)  # Cap at 20 pharmacies
+        
+        # Common pharmacy chains in the US
+        chains = [
+            {"name": "CVS Pharmacy", "name_zh": "CVS药房"},
+            {"name": "Walgreens", "name_zh": "沃尔格林药房"},
+            {"name": "Rite Aid", "name_zh": "莱德药房"},
+            {"name": "Duane Reade", "name_zh": "杜安里德药房"},
+            {"name": "Target Pharmacy", "name_zh": "塔吉特药房"},
+            {"name": "Walmart Pharmacy", "name_zh": "沃尔玛药房"},
+            {"name": "Costco Pharmacy", "name_zh": "好市多药房"},
+            {"name": "Kroger Pharmacy", "name_zh": "克罗格药房"},
+            {"name": "Medicine Shoppe", "name_zh": "药物商店"},
+            {"name": "Health Mart", "name_zh": "健康药房"}
+        ]
+        
+        pharmacies = []
+        
+        for i in range(count):
+            # Generate a random distance within the radius
+            # More pharmacies closer to the user, fewer at the edges
+            distance = random.uniform(0, 1) * radius
             
-            # Number of pharmacies to generate based on radius
-            # Larger radius = more pharmacies, but with diminishing returns
-            count = min(int(radius * 2), 20)  # Cap at 20 pharmacies
+            # Convert distance and random angle to lat/lng
+            # This creates a rough circle of points around the user location
+            angle = random.uniform(0, 360)
+            lat_offset = distance * 0.009 * math.cos(math.radians(angle))
+            lng_offset = distance * 0.011 * math.sin(math.radians(angle))
             
-            # Common pharmacy chains in the US
-            chains = [
-                {"name": "CVS Pharmacy", "name_zh": "CVS药房"},
-                {"name": "Walgreens", "name_zh": "沃尔格林药房"},
-                {"name": "Rite Aid", "name_zh": "莱德药房"},
-                {"name": "Duane Reade", "name_zh": "杜安里德药房"},
-                {"name": "Target Pharmacy", "name_zh": "塔吉特药房"},
-                {"name": "Walmart Pharmacy", "name_zh": "沃尔玛药房"},
-                {"name": "Costco Pharmacy", "name_zh": "好市多药房"},
-                {"name": "Kroger Pharmacy", "name_zh": "克罗格药房"},
-                {"name": "Medicine Shoppe", "name_zh": "药物商店"},
-                {"name": "Health Mart", "name_zh": "健康药房"}
-            ]
+            lat = user_location["lat"] + lat_offset
+            lng = user_location["lng"] + lng_offset
             
-            pharmacies = []
+            # Pick a random pharmacy chain
+            chain = random.choice(chains)
             
-            for i in range(count):
-                # Generate a random distance within the radius
-                # More pharmacies closer to the user, fewer at the edges
-                distance = random.uniform(0, 1) * radius
-                
-                # Convert distance and random angle to lat/lng
-                # This creates a rough circle of points around the user location
-                angle = random.uniform(0, 360)
-                lat_offset = distance * 0.009 * math.cos(math.radians(angle))
-                lng_offset = distance * 0.011 * math.sin(math.radians(angle))
-                
-                lat = user_location["lat"] + lat_offset
-                lng = user_location["lng"] + lng_offset
-                
-                # Pick a random pharmacy chain
-                chain = random.choice(chains)
-                
-                # Generate a realistic address
-                street_num = random.randint(100, 999)
-                streets = ["Main St", "Park Ave", "Oak St", "Elm St", "Washington Ave", 
-                        "Broadway", "Market St", "Church St", "High St", "Center St"]
-                street = random.choice(streets)
-                
-                pharmacy = {
-                    "name": chain["name"],
-                    "name_zh": chain["name_zh"],
-                    "address": f"{street_num} {street}",
-                    "distance": round(distance, 1),
-                    "lat": lat,
-                    "lng": lng
-                }
-                
-                pharmacies.append(pharmacy)
+            # Generate a realistic address
+            street_num = random.randint(100, 999)
+            streets = ["Main St", "Park Ave", "Oak St", "Elm St", "Washington Ave", 
+                     "Broadway", "Market St", "Church St", "High St", "Center St"]
+            street = random.choice(streets)
             
-            # Sort by distance
-            pharmacies = sorted(pharmacies, key=lambda x: x["distance"])
+            pharmacy = {
+                "name": chain["name"],
+                "name_zh": chain["name_zh"],
+                "address": f"{street_num} {street}",
+                "distance": round(distance, 1),
+                "lat": lat,
+                "lng": lng
+            }
             
-            return pharmacies
+            pharmacies.append(pharmacy)
+        
+        # Sort by distance
+        pharmacies = sorted(pharmacies, key=lambda x: x["distance"])
+        
+        return pharmacies
+    
     def _get_address_from_coordinates(self, lat, lng):
         """Get address from coordinates using Nominatim reverse geocoding"""
         
@@ -329,6 +336,7 @@ class PharmacyFinder:
         except Exception as e:
             print(f"Error retrieving address: {e}")
             return "Address unavailable"
+    
     def _get_pharmacy_details(self, pharmacy_id):
         """Get detailed information about a pharmacy using OSM API"""
         
@@ -345,17 +353,16 @@ class PharmacyFinder:
         except:
             return None
 
-
     def _generate_nearby_pharmacies(self, center_lat, center_lng, count=10):
         """Generate random pharmacy data points near the given center coordinates"""
         import random
         
         # Pharmacy name templates
         pharmacy_names_en = ["Community Pharmacy", "Health Plus", "MediCare", "QuickRx", "Family Pharmacy", 
-                            "City Drugs", "Wellness Pharmacy", "Express Meds", "Care Pharmacy", "ProHealth"]
+                           "City Drugs", "Wellness Pharmacy", "Express Meds", "Care Pharmacy", "ProHealth"]
         
         pharmacy_names_zh = ["社区药房", "健康加", "医保药房", "快速药房", "家庭药房", 
-                            "城市药房", "健康药房", "快捷药房", "关爱药房", "专业健康"]
+                           "城市药房", "健康药房", "快捷药房", "关爱药房", "专业健康"]
         
         pharmacies = []
         
@@ -385,13 +392,13 @@ class PharmacyFinder:
             pharmacies.append(pharmacy)
         
         return pharmacies
-    
+
     def _create_pharmacy_map(self, user_location, pharmacies):
-        """创建药房地图"""
-        # 创建地图对象
+        """Create a Folium map with pharmacies"""
+        # Create map object
         m = folium.Map(location=[user_location["lat"], user_location["lng"]], zoom_start=14)
         
-        # 添加用户位置标记
+        # Add user location marker
         your_location = "您的位置" if self.lang == "zh" else "Your Location"
         folium.Marker(
             [user_location["lat"], user_location["lng"]],
@@ -399,9 +406,9 @@ class PharmacyFinder:
             icon=folium.Icon(color="red", icon="home")
         ).add_to(m)
         
-        # 添加药房标记
+        # Add pharmacy markers
         for pharmacy in pharmacies:
-            # 根据语言选择显示的药房名称
+            # Choose display name based on language
             pharmacy_name = pharmacy["name_zh"] if self.lang == "zh" else pharmacy["name"]
             distance_text = f"距离: {pharmacy['distance']}公里" if self.lang == "zh" else f"Distance: {pharmacy['distance']} km"
             
@@ -412,26 +419,7 @@ class PharmacyFinder:
             ).add_to(m)
         
         return m
-    def _calculate_distance(self, lat1, lon1, lat2, lon2):
-        """Calculate the distance between two coordinates using the Haversine formula"""
-        from math import sin, cos, sqrt, atan2, radians
-        
-        # Approximate radius of earth in km
-        R = 6371.0
-        
-        lat1 = radians(lat1)
-        lon1 = radians(lon1)
-        lat2 = radians(lat2)
-        lon2 = radians(lon2)
-        
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        
-        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        
-        distance = R * c
-        return round(distance, 1)  # Round to 1 decimal place
+    
     def _create_pharmacy_map_html(self, user_location, pharmacies):
         """Create HTML for a Leaflet map with pharmacies"""
         
@@ -482,16 +470,17 @@ class PharmacyFinder:
         """
         
         return map_html
+        
     def render(self):
-        """渲染药房查找界面"""
+        """Render the pharmacy finder interface"""
         t = self.t.pharmacy[self.lang]
         ui = self.t.ui[self.lang]
         
         st.header(t["header"])
         
-        # 用户输入
+        # User input
         st.write(t["description"])
-        
+
         # Add translations for map-related text if needed
         if "click_map" not in t:
             t["click_map"] = "点击地图设置您的位置" if self.lang == "zh" else "Click on the map to set your location"
@@ -549,13 +538,13 @@ class PharmacyFinder:
             # Extract medication names from recommendations
             import re
             text = st.session_state.recommended_medications
-            
+
             # Choose regex pattern based on language
             pattern = r'推荐药物名称[:：]\s*([^\n]+)' if self.lang == "zh" else r'Recommended medication[:：]\s*([^\n]+)'
             med_matches = re.findall(pattern, text)
             if med_matches:
                 medications = [med.strip() for med in med_matches[0].split(',')]
-        
+
         # Medication input/selection
         st.markdown("---")
         if medications:
@@ -563,36 +552,39 @@ class PharmacyFinder:
             medication = st.selectbox(t["select_medication"], [empty_option] + medications)
         else:
             medication = st.text_input(t["enter_medication"])
-        
+
         # Search parameters
         col1, col2 = st.columns(2)
         with col1:
             radius = st.slider(t["search_radius"], 1, 20, 5)
         with col2:
             sort_by = st.selectbox(t["sort_by"], t["sort_options"])
-        
+
         # Search button
         if st.button(ui["search_button"]):
             with st.spinner(t["searching"]):
+                # Get user location
+                user_location = self._get_user_location()
+                
                 # Search pharmacies
                 pharmacies = self._search_nearby_pharmacies(user_location, medication, radius)
-                
+
                 if pharmacies:
                     st.success(t["found_pharmacies"].format(len(pharmacies)))
-                    
+
                     # Display map
                     st.subheader(t["pharmacy_map"])
                     m = self._create_pharmacy_map(user_location, pharmacies)
                     folium_static(m)
-                    
+
                     # Display pharmacy list
                     st.subheader(t["pharmacy_list"])
-                    
+
                     # Sort based on selected option
                     if sort_by == t["sort_options"][0]:  # Distance
                         pharmacies = sorted(pharmacies, key=lambda x: x["distance"])
                     # Add more sorting options if needed
-                    
+
                     # Show pharmacy information
                     for i, pharmacy in enumerate(pharmacies):
                         with st.container():
@@ -600,7 +592,7 @@ class PharmacyFinder:
                             with col1:
                                 # Choose display name based on language
                                 pharmacy_name = pharmacy["name_zh"] if self.lang == "zh" else pharmacy["name"]
-                                
+
                                 st.write(f"#### {i+1}. {pharmacy_name}")
                                 st.write(f"{t['address']} {pharmacy['address']}")
                                 st.write(t["distance_km"].format(pharmacy['distance']))
@@ -613,7 +605,7 @@ class PharmacyFinder:
                                     # import webbrowser
                                     # maps_url = f"https://www.google.com/maps/dir/?api=1&destination={pharmacy['lat']},{pharmacy['lng']}"
                                     # webbrowser.open_new_tab(maps_url)
-                                
+
                                 if st.button(ui["order_button"], key=f"order_{i}"):
                                     if medication:
                                         st.success(t["added_to_cart"].format(medication, pharmacy_name))
@@ -624,6 +616,7 @@ class PharmacyFinder:
                 else:
                     st.error(t["no_pharmacies"].format(radius, medication if medication else ""))
                     st.info(t["suggestion"])
+    
     def render_map(self, user_location, pharmacies):
         """Render the map in Streamlit"""
         
