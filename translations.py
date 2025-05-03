@@ -1,5 +1,4 @@
 # translations.py
-# 包含应用程序的所有翻译文本
 
 class TranslationDict:
     def __init__(self):
@@ -18,10 +17,7 @@ class TranslationDict:
                 "price": "价格",
                 "available_beds": "可用床位",
                 "wait_time": "等待时间",
-                "footer_disclaimer": "免责声明：本系统仅提供初步诊断参考，不能替代专业医生的诊断和治疗建议。如有严重症状，请立即就医。",
-                "requesting_location": "正在请求您的位置...",
-                "location_acquired": "已成功获取您的位置!",
-                "location_default": "使用默认位置。",
+                "footer_disclaimer": "免责声明：本系统仅提供初步诊断参考，不能替代专业医生的诊断和治疗建议。如有严重症状，请立即就医。"
             },
             "en": {
                 "language_selector": "Select Language:",
@@ -32,9 +28,6 @@ class TranslationDict:
                 "yes": "Yes",
                 "no": "No",
                 "distance": "Distance",
-                "requesting_location": "Requesting your location...",
-                "location_acquired": "Location acquired successfully!",
-                "location_default": "Using default location.",
                 "rating": "Rating",
                 "price": "Price",
                 "available_beds": "Available Beds",
@@ -54,7 +47,11 @@ class TranslationDict:
                 "medical_data": "📊 医疗数据分析",
                 "find_pharmacy": "💊 查找药房",
                 "find_hospital": "🏥 查找医院",
-                "copyright": "© 2025 ClinixBot - 智能医疗诊断系统"
+                "train_model": "🧠 训练模型", # 新增：训练模型菜单项
+                "copyright": "© 2025 ClinixBot - 智能医疗诊断系统",
+                "model_settings": "模型设置", # 新增：模型设置标题
+                "use_fine_tuned_model": "使用微调模型", # 新增：微调模型选项
+                "fine_tuned_model_name": "微调模型名称" # 新增：模型名称输入框文本
             },
             "en": {
                 "app_title": "ClinixBot - Intelligent Medical Diagnostic Assistant",
@@ -65,7 +62,11 @@ class TranslationDict:
                 "medical_data": "📊 Medical Data Analysis",
                 "find_pharmacy": "💊 Find Pharmacy",
                 "find_hospital": "🏥 Find Hospital",
-                "copyright": "© 2025 ClinixBot - Intelligent Medical Diagnostic System"
+                "train_model": "🧠 Train Model", # 新增：训练模型菜单项
+                "copyright": "© 2025 ClinixBot - Intelligent Medical Diagnostic System",
+                "model_settings": "Model Settings", # 新增：模型设置标题
+                "use_fine_tuned_model": "Use Fine-tuned Model", # 新增：微调模型选项
+                "fine_tuned_model_name": "Fine-tuned Model Name" # 新增：模型名称输入框文本
             }
         }
         
@@ -74,26 +75,34 @@ class TranslationDict:
             "zh": {
                 "header": "💬 智能诊断助手",
                 "input_placeholder": "请描述您的症状:",
+                "followup_input_placeholder": "请回答医生的追问...",  # 添加的追问占位符
                 "initial_greeting1": "👋 您好！我是ClinixBot，您的智能医疗助手。请告诉我您的症状，我将为您提供初步诊断。",
                 "initial_greeting2": "欢迎使用ClinixBot！我可以帮助您了解可能的健康问题。请描述您的症状。",
                 "initial_greeting3": "您好！我是ClinixBot医疗助手。请详细描述您的症状，我会尽力提供帮助。",
                 "analyzing": "ClinixBot正在分析您的症状...",
                 "generating_recommendations": "正在生成用药建议...",
+                "generating_followup": "正在生成追问...",  # 添加的追问生成提示
                 "view_recommendations": "查看药物推荐",
                 "find_nearby_pharmacy": "查找附近药房",
-                "find_nearby_hospital": "查找附近医院"
+                "find_nearby_hospital": "查找附近医院",
+                "fine_tuned_model": "微调模型", # 新增：微调模型标签
+                "rag_model": "检索增强模型" # 新增：RAG模型标签
             },
             "en": {
                 "header": "💬 Intelligent Diagnostic Assistant",
                 "input_placeholder": "Please describe your symptoms:",
+                "followup_input_placeholder": "Please answer the doctor's follow-up question...",  # 添加的追问占位符
                 "initial_greeting1": "👋 Hello! I'm ClinixBot, your intelligent medical assistant. Please tell me your symptoms, and I will provide you with a preliminary diagnosis.",
                 "initial_greeting2": "Welcome to ClinixBot! I can help you understand potential health issues. Please describe your symptoms.",
                 "initial_greeting3": "Hello! I'm ClinixBot medical assistant. Please describe your symptoms in detail, and I will do my best to help.",
                 "analyzing": "ClinixBot is analyzing your symptoms...",
                 "generating_recommendations": "Generating medication recommendations...",
+                "generating_followup": "Generating follow-up question...",  # 添加的追问生成提示
                 "view_recommendations": "View Medication Recommendations",
                 "find_nearby_pharmacy": "Find Nearby Pharmacies",
-                "find_nearby_hospital": "Find Nearby Hospitals"
+                "find_nearby_hospital": "Find Nearby Hospitals",
+                "fine_tuned_model": "Fine-tuned Model", # 新增：微调模型标签
+                "rag_model": "RAG Model" # 新增：RAG模型标签
             }
         }
         
@@ -111,9 +120,6 @@ class TranslationDict:
                 "hospital_map": "附近医院地图",
                 "hospital_list": "医院列表",
                 "address": "地址:",
-                "your_location": "您当前的位置：",
-                "location_permission": "需要位置权限",
-                "location_permission_message": "请允许访问您的位置以查找附近医院",
                 "distance_km": "距离: {} 公里",
                 "wait_time_min": "等待时间: {}",
                 "available_beds": "可用床位: {}",
@@ -135,9 +141,6 @@ class TranslationDict:
                 "found_hospitals": "Found {} nearby hospitals",
                 "hospital_map": "Nearby Hospitals Map",
                 "hospital_list": "Hospital List",
-                "your_location": "Your current location:",
-                "location_permission": "Location Permission Required",
-                "location_permission_message": "Please allow access to your location to find nearby hospitals",
                 "address": "Address:",
                 "distance_km": "Distance: {} km",
                 "wait_time_min": "Wait Time: {}",
@@ -226,6 +229,39 @@ class TranslationDict:
                 "avg_bill_amount": "Average Bill Amount ($)"
             }
         }
+        
+        # 模型训练界面（新增）
+        self.training = {
+            "zh": {
+                "header": "🧠 模型训练",
+                "intro": "上传医疗数据以训练定制化的诊断模型",
+                "upload_label": "上传用于训练的CSV数据",
+                "data_preview": "数据预览",
+                "training_config": "训练配置",
+                "epochs": "训练轮次",
+                "start_training": "开始训练",
+                "preparing_data": "正在准备训练数据...",
+                "creating_job": "正在创建微调任务...",
+                "success_message": "微调任务创建成功！",
+                "job_status": "任务状态",
+                "check_status": "检查任务状态",
+                "checking_status": "正在检查状态..."
+            },
+            "en": {
+                "header": "🧠 Model Training",
+                "intro": "Upload medical data to train a customized diagnostic model",
+                "upload_label": "Upload CSV data for training",
+                "data_preview": "Data Preview",
+                "training_config": "Training Configuration",
+                "epochs": "Number of epochs",
+                "start_training": "Start Training",
+                "preparing_data": "Preparing training data...",
+                "creating_job": "Creating fine-tuning job...",
+                "success_message": "Fine-tuning job created successfully!",
+                "job_status": "Job Status",
+                "check_status": "Check Job Status",
+                "checking_status": "Checking status..."
+            }
+        }
 
-# 创建翻译字典的全局实例
 translations = TranslationDict()
