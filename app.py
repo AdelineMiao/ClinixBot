@@ -1,4 +1,4 @@
-#app.py
+# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,6 +10,7 @@ from components.pharmacy_finder import PharmacyFinder
 from components.hospital_finder import HospitalFinder
 from utils.data_processor import DataProcessor
 from models.rag_model import MedicalRAGModel
+from models.train_model_view import TrainModelView  # 导入新的训练视图
 from translations import translations
 
 # 加载环境变量
@@ -99,14 +100,20 @@ if 'recommended_medications' not in st.session_state:
 if 'active_view' not in st.session_state:
     st.session_state.active_view = "chat"
 
-# 初始化语言选择（默认为中文）
+# 初始化模型设置
+if 'use_fine_tuned' not in st.session_state:
+    st.session_state.use_fine_tuned = False
+
+if 'fine_tuned_model_name' not in st.session_state:
+    st.session_state.fine_tuned_model_name = None
+
 if 'language' not in st.session_state:
-    st.session_state.language = "zh"
+    st.session_state.language = "en"
 
 # 加载模型和数据
 @st.cache_resource
-def load_rag_model():
-    return MedicalRAGModel()
+def load_rag_model(use_fine_tuned=False, fine_tuned_model_name=None):
+    return MedicalRAGModel(use_fine_tuned=use_fine_tuned, fine_tuned_model_name=fine_tuned_model_name)
 
 @st.cache_data
 def load_medical_data():
@@ -115,7 +122,10 @@ def load_medical_data():
     return processor.preprocess_data(data)
 
 # 加载数据和模型
-rag_model = load_rag_model()
+rag_model = load_rag_model(
+    use_fine_tuned=st.session_state.use_fine_tuned,
+    fine_tuned_model_name=st.session_state.fine_tuned_model_name
+)
 medical_data = load_medical_data()
 
 # 获取当前语言的翻译
@@ -124,7 +134,13 @@ t = translations
 
 # 侧边栏菜单
 with st.sidebar:
-    st.image("https://via.placeholder.com/150x150.png?text=ClinixBot", width=150)
+    # 替换图片为文本 logo
+    st.sidebar.markdown("""
+    <div style="text-align: center; background-color: #4B89DC; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+        <h1 style="margin: 0; font-size: 28px;">🏥 ClinixBot</h1>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.title(t.app[lang]["nav_menu"])
     
     # 语言选择器
@@ -145,6 +161,37 @@ with st.sidebar:
             
         st.rerun()  # 重新运行应用以应用新的语言设置
     
+    # 添加模型设置
+    st.divider()
+    st.subheader(t.app[lang]["model_settings"])
+    
+    use_fine_tuned = st.checkbox(
+        t.app[lang]["use_fine_tuned_model"], 
+        value=st.session_state.use_fine_tuned
+    )
+    
+    fine_tuned_model_name = None
+    if use_fine_tuned:
+        fine_tuned_model_name = st.text_input(
+            t.app[lang]["fine_tuned_model_name"],
+            value=st.session_state.fine_tuned_model_name if st.session_state.fine_tuned_model_name else ""
+        )
+    
+    # 更新模型设置并刷新
+    if use_fine_tuned != st.session_state.use_fine_tuned or fine_tuned_model_name != st.session_state.fine_tuned_model_name:
+        st.session_state.use_fine_tuned = use_fine_tuned
+        st.session_state.fine_tuned_model_name = fine_tuned_model_name
+        
+        # 清除缓存以使用新设置重新加载模型
+        st.cache_resource.clear()
+        rag_model = load_rag_model(use_fine_tuned, fine_tuned_model_name)
+        
+        # 显示提示信息
+        model_type = t.app[lang].get("fine_tuned_model","Fine Tuned") if use_fine_tuned else "RAG"
+        st.success(f"已切换到 {model_type} 模型" if lang == "zh" else f"Switched to {model_type} model")
+    
+    st.divider()
+    
     # 导航菜单
     selected_view = st.radio(
         t.app[lang]["select_feature"],
@@ -152,7 +199,8 @@ with st.sidebar:
             t.app[lang]["chat_diagnosis"], 
             t.app[lang]["medical_data"], 
             t.app[lang]["find_pharmacy"], 
-            t.app[lang]["find_hospital"]
+            t.app[lang]["find_hospital"],
+            t.app[lang]["train_model"]
         ]
     )
     
@@ -164,6 +212,8 @@ with st.sidebar:
         st.session_state.active_view = "pharmacy"
     elif selected_view == t.app[lang]["find_hospital"]:
         st.session_state.active_view = "hospital"
+    elif selected_view == t.app[lang]["train_model"]:  # 添加训练模型视图
+        st.session_state.active_view = "train"
     
     st.divider()
     st.caption(t.app[lang]["copyright"])
@@ -188,6 +238,10 @@ elif st.session_state.active_view == "pharmacy":
 elif st.session_state.active_view == "hospital":
     hospital_finder = HospitalFinder(lang)
     hospital_finder.render()
+    
+elif st.session_state.active_view == "train": 
+    train_model_view = TrainModelView(lang)
+    train_model_view.render()
 
 # 添加页脚
 st.markdown("---")
