@@ -18,6 +18,8 @@ class TranslationDict:
                 "price": "价格",
                 "available_beds": "可用床位",
                 "wait_time": "等待时间",
+                "generate_report_button": "📝 生成分析报告",
+                "continue_button": "继续补充信息",
                 "footer_disclaimer": "免责声明：本系统仅提供初步诊断参考，不能替代专业医生的诊断和治疗建议。如有严重症状，请立即就医。"
             },
             "en": {
@@ -33,6 +35,8 @@ class TranslationDict:
                 "price": "Price",
                 "available_beds": "Available Beds",
                 "wait_time": "Wait Time",
+                "generate_report_button": "📝 Generate Report",
+                "continue_button": "Continue Describing",
                 "footer_disclaimer": "Disclaimer: This system only provides preliminary diagnostic reference and cannot replace the diagnosis and treatment advice of a professional doctor. If you have serious symptoms, please seek medical attention immediately."
             }
         }
