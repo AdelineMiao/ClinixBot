@@ -81,7 +81,8 @@ ClinixBot/
 │   ├── pharmacy_finder.py  # Pharmacy finder component
 │   └── visualization_dashboard.py  # Data visualization component
 ├── models/
-│   └── rag_model.py        # RAG model for medical diagnosis (multilingual capable)
+│   ├── rag_model.py        # RAG model for medical diagnosis (multilingual capable)
+│   └── fine_tuned_model.py
 ├── utils/
 │   └── data_processor.py   # Data processing utilities
 ├── data/
