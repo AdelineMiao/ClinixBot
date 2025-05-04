@@ -167,7 +167,6 @@ class TrainModelView:
                                 "Status checking feature is in development. Please check progress on the OpenAI dashboard.")
                     except Exception as e:
                         st.error(str(e))
-    
     def _render_evaluation_section(self):
         """Render the model evaluation section"""
         # Evaluation introduction text
@@ -288,21 +287,12 @@ class TrainModelView:
                         st.error(f"评估过程中出错: {str(e)}" if self.lang == "zh" else f"Error during evaluation: {str(e)}")
             else:
                 st.error("请上传测试数据并指定模型名称" if self.lang == "zh" else "Please upload test data and specify a model name")
-    
     def evaluate_model(self, test_data_path, model, metrics=None):
         """
         Evaluate the fine-tuned model on test data
-        
-        Args:
-            test_data_path: Path to test data CSV
-            model: Fine-tuned model instance
-            metrics: List of metrics to calculate
-            
-        Returns:
-            Dictionary of evaluation results
         """
         if metrics is None:
-            metrics = ["accuracy", "precision", "recall", "f1", "response_time", "by_condition", "by_language"]
+            metrics = ["accuracy", "precision", "recall", "f1"]
         
         # Load test data
         test_df = pd.read_csv(test_data_path)
@@ -321,23 +311,49 @@ class TrainModelView:
         languages = []
         conditions = []
         
+        # Add logging for debugging
+        st.info(f"Loaded {len(test_df)} test records. Starting evaluation...")
+        
         # Process each test case
-        for _, row in test_df.iterrows():
-            # Test in both languages
-            for lang in ["zh", "en"]:
+        for idx, row in test_df.iterrows():
+            # Make sure Medical Condition column exists
+            if "Medical Condition" not in row:
+                st.error("Test data missing 'Medical Condition' column")
+                return {"error": "Test data missing required columns"}
+                
+            # Make sure Doctor's Notes column exists
+            if "Doctor's Notes" not in row:
+                st.error("Test data missing 'Doctor's Notes' column")
+                return {"error": "Test data missing required columns"}
+                
+            # Test in both languages (or just one if testing performance)
+            test_langs = ["en"]  # Can change to ["zh", "en"] to test both
+            
+            for lang in test_langs:
                 try:
                     # Start timer
                     start_time = time.time()
                     
-                    # Get model prediction
+                    # Get model prediction - add debugging
                     symptoms = row["Doctor's Notes"]
+                    st.write(f"Testing sample {idx+1}/{len(test_df)} ({lang})")
+                    
+                    # Verify model has get_diagnosis method
+                    if not hasattr(model, 'get_diagnosis'):
+                        st.error(f"Model {model.__class__.__name__} does not have get_diagnosis method")
+                        return {"error": "Invalid model: missing get_diagnosis method"}
+                    
+                    # Get diagnosis
                     response = model.get_diagnosis(symptoms, lang=lang)
                     
                     # End timer
                     end_time = time.time()
                     
-                    # Parse prediction (extract diagnosis from structured response)
-                    # This is just a placeholder - implement according to your model's output format
+                    # Show raw response for debugging
+                    if idx < 3:  # Show first 3 responses for debugging
+                        st.code(response, language="text")
+                    
+                    # Parse prediction
                     if lang == "zh":
                         predicted_condition = self._extract_diagnosis(response, "初步诊断:")
                     else:
@@ -351,12 +367,15 @@ class TrainModelView:
                     conditions.append(row["Medical Condition"])
                     
                 except Exception as e:
-                    st.warning(f"处理样本时出错 ({lang}): {str(e)}" if self.lang == "zh" else 
-                               f"Error processing sample ({lang}): {str(e)}")
+                    st.error(f"Error processing sample {idx+1} ({lang}): {str(e)}")
+                    # Instead of stopping, continue with next sample
+                    continue
         
-        # Save raw predictions for other calculations
-        results["predictions"] = predictions
-        results["ground_truth"] = ground_truth
+        # Check if we have any successful predictions
+        if not predictions:
+            st.error("No successful predictions were made. Cannot calculate metrics.")
+            return {"error": "No successful predictions"}
+    
         
         # Calculate general metrics
         if any(m in metrics for m in ["accuracy", "precision", "recall", "f1"]):
@@ -914,3 +933,151 @@ class TrainModelView:
             file_name="model_evaluation_results.json",
             mime="application/json"
         )
+    def _render_evaluation_section(self):
+        """Render the model evaluation section"""
+        # Evaluation introduction text
+        intro_text = """
+        评估您的医疗诊断模型性能。上传测试数据集，选择要评估的指标，并查看详细分析。
+        
+        该评估将提供一般指标（准确率、精确率等）和医疗特定指标（按病情、语言和临床重要性的细分评估）。
+        """ if self.lang == "zh" else """
+        Evaluate your medical diagnostic model performance. Upload a test dataset, select metrics to evaluate, and view detailed analysis.
+        
+        The evaluation will provide both general metrics (accuracy, precision, etc.) and medical-specific metrics (breakdowns by condition, language, and clinical importance).
+        """
+        
+        st.markdown(intro_text)
+        
+        # Upload test data
+        upload_label = "上传测试数据CSV文件" if self.lang == "zh" else "Upload Test Data CSV"
+        test_data = st.file_uploader(upload_label, type=["csv"], key="test_data_upload")
+        
+        # Model selection
+        model_label = "要评估的模型" if self.lang == "zh" else "Model to Evaluate"
+        model_name = st.text_input(
+            model_label,
+            value=st.session_state.fine_tuned_model_name if 'fine_tuned_model_name' in st.session_state and st.session_state.fine_tuned_model_name else ""
+        )
+        
+        # Create columns for metrics selection
+        st.subheader("评估指标" if self.lang == "zh" else "Evaluation Metrics")
+        
+        col1, col2 = st.columns(2)
+        
+        # General metrics
+        with col1:
+            st.markdown("**一般指标**" if self.lang == "zh" else "**General Metrics**")
+            use_accuracy = st.checkbox("准确率 (Accuracy)" if self.lang == "zh" else "Accuracy", value=True)
+            use_precision = st.checkbox("精确率 (Precision)" if self.lang == "zh" else "Precision", value=True)
+            use_recall = st.checkbox("召回率 (Recall)" if self.lang == "zh" else "Recall", value=True)
+            use_f1 = st.checkbox("F1 分数" if self.lang == "zh" else "F1 Score", value=True)
+            use_response_time = st.checkbox("响应时间" if self.lang == "zh" else "Response Time", value=True)
+        
+        # Domain-specific metrics
+        with col2:
+            st.markdown("**医疗特定指标**" if self.lang == "zh" else "**Medical-Specific Metrics**")
+            use_by_condition = st.checkbox("按病情分析" if self.lang == "zh" else "Analysis by Condition", value=True)
+            use_by_language = st.checkbox("按语言分析" if self.lang == "zh" else "Analysis by Language", value=True)
+            use_weighted_score = st.checkbox("医疗加权评分" if self.lang == "zh" else "Medical Weighted Score", value=True)
+            use_confusion_matrix = st.checkbox("混淆矩阵" if self.lang == "zh" else "Confusion Matrix", value=True)
+        
+        # Cost analysis section
+        st.subheader("成本分析" if self.lang == "zh" else "Cost Analysis")
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            include_cost = st.checkbox("包含成本分析" if self.lang == "zh" else "Include Cost Analysis", value=True)
+        
+        with col4:
+            if include_cost:
+                monthly_queries = st.number_input(
+                    "估计每月查询量" if self.lang == "zh" else "Estimated Monthly Queries",
+                    min_value=100,
+                    max_value=100000,
+                    value=1000,
+                    step=100
+                )
+        
+        # Evaluate button
+        eval_button_text = "评估模型" if self.lang == "zh" else "Evaluate Model"
+        if st.button(eval_button_text):
+            if test_data is not None and model_name:
+                # Save uploaded file temporarily
+                with open("temp_test_data.csv", "wb") as f:
+                    f.write(test_data.getbuffer())
+                
+                # Collect selected metrics
+                metrics = []
+                if use_accuracy: metrics.append("accuracy")
+                if use_precision: metrics.append("precision")
+                if use_recall: metrics.append("recall")
+                if use_f1: metrics.append("f1")
+                if use_response_time: metrics.append("response_time")
+                if use_by_condition: metrics.append("by_condition")
+                if use_by_language: metrics.append("by_language")
+                if use_confusion_matrix: metrics.append("confusion_matrix")
+                
+                # Initialize model with better error handling
+                try:
+                    # Show user we're trying to load the model
+                    st.info(f"Initializing model: {model_name}")
+                    
+                    # Initialize model
+                    evaluation_model = FineTunedMedicalModel(model_name=model_name)
+                    
+                    # Verify model is properly initialized
+                    if not hasattr(evaluation_model, 'get_diagnosis'):
+                        st.error("Model initialization failed: missing get_diagnosis method")
+                    else:
+                        # Run evaluation with progress
+                        with st.spinner("Evaluating model..."):
+                            # Test with a single sample first to verify it works
+                            test_df = pd.read_csv("temp_test_data.csv")
+                            if len(test_df) > 0:
+                                try:
+                                    # Test a single prediction
+                                    test_symptoms = test_df.iloc[0]["Doctor's Notes"]
+                                    test_response = evaluation_model.get_diagnosis(test_symptoms, "en")
+                                    st.success("Model initialized successfully! Starting evaluation...")
+                                    
+                                    # Run full evaluation
+                                    results = self.evaluate_model("temp_test_data.csv", evaluation_model, metrics)
+                                    
+                                    # Display results if successful
+                                    if "error" in results:
+                                        st.error(f"Evaluation failed: {results['error']}")
+                                    else:
+                                        # Add weighted score if selected
+                                        if use_weighted_score and "predictions" in results and "ground_truth" in results:
+                                            weighted_results = self.calculate_medical_weighted_score(
+                                                results["predictions"],
+                                                results["ground_truth"]
+                                            )
+                                            results["weighted_score"] = weighted_results
+                                        
+                                        # Add cost analysis if selected
+                                        if include_cost:
+                                            cost_analysis = self.calculate_inference_costs(
+                                                results,
+                                                {"monthly_queries": monthly_queries}
+                                            )
+                                            results["cost_analysis"] = cost_analysis
+                                        
+                                        # Display results
+                                        self.display_evaluation_results(results)
+                                except Exception as e:
+                                    st.error(f"Model test failed: {str(e)}")
+                            else:
+                                st.error("Test data is empty")
+                                
+                except Exception as e:
+                    st.error(f"Model initialization failed: {str(e)}")
+                    
+                # Clean up
+                try:
+                    os.remove("temp_test_data.csv")
+                except:
+                    pass
+            else:
+                st.error("请上传测试数据并指定模型名称" if self.lang == "zh" else "Please upload test data and specify a model name")
