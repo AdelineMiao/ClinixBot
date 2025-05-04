@@ -30,14 +30,18 @@ class FineTunedMedicalModel:
             for lang in ["zh", "en"]:
                 if lang == "zh":
                     # Chinese example
-                    symptoms = f"患者描述症状: {row['Medical Condition']}相关症状。{row['Doctor\'s Notes']}"
+                    doctor_notes = row["Doctor's Notes"]
+                    symptoms = f"患者描述症状: {row['Medical Condition']}相关症状。{doctor_notes}"
+                    doctor_notes = row["Doctor's Notes"]
+                    symptoms = f"Patient describes symptoms: {row['Medical Condition']} related symptoms. {doctor_notes}"
                     response = f"""
                     初步诊断: {row['Medical Condition']}
                     建议治疗: {row['Treatments']}
                     """
                 else:
                     # English example
-                    symptoms = f"Patient describes symptoms: {row['Medical Condition']} related symptoms. {row['Doctor\'s Notes']}"
+                    doctor_notes = row["Doctor's Notes"]
+                    symptoms = f"Patient describes symptoms: {row['Medical Condition']} related symptoms. {doctor_notes}"
                     response = f"""
                     Preliminary diagnosis: {row['Medical Condition']}
                     Recommended treatment: {row['Treatments']}
@@ -120,3 +124,4 @@ class FineTunedMedicalModel:
             return fine_tuned_models
         except Exception as e:
             return f"Error listing models: {str(e)}"
+    
