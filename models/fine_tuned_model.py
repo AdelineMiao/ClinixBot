@@ -31,9 +31,7 @@ class FineTunedMedicalModel:
                 if lang == "zh":
                     # Chinese example
                     doctor_notes = row["Doctor's Notes"]
-                    symptoms = f"患者描述症状: {row['Medical Condition']}相关症状。{doctor_notes}"
-                    doctor_notes = row["Doctor's Notes"]
-                    symptoms = f"Patient describes symptoms: {row['Medical Condition']} related symptoms. {doctor_notes}"
+                    symptoms = f"患者描述的症状: {doctor_notes}"
                     response = f"""
                     初步诊断: {row['Medical Condition']}
                     建议治疗: {row['Treatments']}
@@ -41,7 +39,7 @@ class FineTunedMedicalModel:
                 else:
                     # English example
                     doctor_notes = row["Doctor's Notes"]
-                    symptoms = f"Patient describes symptoms: {row['Medical Condition']} related symptoms. {doctor_notes}"
+                    symptoms = f"Patient describes the following symptoms: {doctor_notes}"
                     response = f"""
                     Preliminary diagnosis: {row['Medical Condition']}
                     Recommended treatment: {row['Treatments']}
@@ -59,7 +57,22 @@ class FineTunedMedicalModel:
                 })
         
         return training_data
-    
+    def _extract_diagnosis(self, model_output, prefix):
+        if not model_output:
+            return "Unknown"
+        
+        # Normalize model output (lowercase, remove extra spaces)
+        normalized_output = " ".join(model_output.lower().strip().split())
+        
+        # Search for prefix in case-insensitive way
+        prefix_lower = prefix.lower()
+        
+        # Try exact prefix match first
+        for line in model_output.split('\n'):
+            line = line.strip()
+            if line.lower().startswith(prefix_lower):
+                diagnosis = line[len(prefix):].strip()
+                return diagnosis
     def create_fine_tuning_job(self, training_data, hyperparameters=None):
         """Create a fine-tuning job with OpenAI"""
         try:
@@ -135,4 +148,14 @@ class FineTunedMedicalModel:
             return fine_tuned_models
         except Exception as e:
             return f"Error listing models: {str(e)}"
-    
+    def _normalize_condition(self, condition):
+        """Normalize medical condition text for better matching"""
+        condition = condition.lower().strip()
+        # Remove common prefixes/suffixes
+        prefixes = ["a case of ", "patient has ", "diagnosed with "]
+        for prefix in prefixes:
+            if condition.startswith(prefix):
+                condition = condition[len(prefix):]
+        # Remove punctuation
+        condition = condition.rstrip('.,;:')
+        return condition.strip()
