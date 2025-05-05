@@ -375,7 +375,54 @@ class TrainModelView:
         if not predictions:
             st.error("No successful predictions were made. Cannot calculate metrics.")
             return {"error": "No successful predictions"}
-    
+        
+        # Display original prediction vs ground truth comparison
+        st.write("### Original Prediction vs. Ground Truth (First 10 Samples)")
+        original_comparison = []
+        for i in range(min(10, len(predictions))):
+            original_comparison.append({
+                "Sample": i+1,
+                "Prediction": predictions[i],
+                "Ground Truth": ground_truth[i],
+                "Match": predictions[i] == ground_truth[i]
+            })
+        st.table(pd.DataFrame(original_comparison))
+        
+        # Normalize predictions and ground truth for better matching
+        normalized_predictions = []
+        normalized_ground_truth = []
+        
+        for pred, truth in zip(predictions, ground_truth):
+            # Apply normalization to both prediction and ground truth
+            norm_pred = self._normalize_condition(pred)
+            norm_truth = self._normalize_condition(truth)
+            
+            normalized_predictions.append(norm_pred)
+            normalized_ground_truth.append(norm_truth)
+        
+        # Display normalized comparison
+        st.write("### Normalized Prediction vs. Ground Truth (First 10 Samples)")
+        normalized_comparison = []
+        for i in range(min(10, len(normalized_predictions))):
+            normalized_comparison.append({
+                "Sample": i+1,
+                "Normalized Prediction": normalized_predictions[i],
+                "Normalized Ground Truth": normalized_ground_truth[i],
+                "Match": normalized_predictions[i] == normalized_ground_truth[i]
+            })
+        st.table(pd.DataFrame(normalized_comparison))
+        
+        # Save original values for reference
+        results["raw_predictions"] = predictions
+        results["raw_ground_truth"] = ground_truth
+        
+        # Replace with normalized values for metric calculation
+        predictions = normalized_predictions
+        ground_truth = normalized_ground_truth
+        
+        # Save normalized values for other calculations
+        results["predictions"] = predictions
+        results["ground_truth"] = ground_truth
         
         # Calculate general metrics
         if any(m in metrics for m in ["accuracy", "precision", "recall", "f1"]):
@@ -476,23 +523,114 @@ class TrainModelView:
         """Extract diagnosis from model output based on prefix"""
         if not model_output:
             return "Unknown"
-            
-        # Look for the prefix in each line
+        
+        # First try to find exact matches to common conditions
+        common_conditions = [
+            "Pneumonia", "Diabetes", "Hypertension", "Asthma", "Common Cold", 
+            "Bronchitis", "Influenza", "Gastritis", "Myocardial Infarction", "Stroke",
+            "Sepsis", "Type 2 Diabetes", "Upper Respiratory Infection", "Urinary Tract Infection",
+            "COPD", "Anemia", "Depression", "Anxiety", "Osteoarthritis", "Migraine",
+            "Hypothyroidism", "Gastroenteritis", "Sinusitis", "Otitis Media"
+        ]
+        
+        for condition in common_conditions:
+            if condition.lower() in model_output.lower():
+                return condition
+        
+        # Try exact prefix match first
         for line in model_output.split('\n'):
             line = line.strip()
-            if line.startswith(prefix):
+            if line.lower().startswith(prefix.lower()):
                 diagnosis = line[len(prefix):].strip()
                 return diagnosis
         
-        # If no diagnosis found with prefix, return the first non-empty line
-        # or a default value if everything fails
-        for line in model_output.split('\n'):
-            line = line.strip()
-            if line:
-                return line
-                
+        # Try alternative patterns to find diagnosis
+        patterns = [
+            "diagnosis:", "diagnosed with:", "condition:", "assessment:", "impression:",
+            "patient has", "suffering from", "presenting with", "consistent with",
+            "most likely", "probable", "suspected", "suggestive of"
+        ]
+        
+        for pattern in patterns:
+            if pattern.lower() in model_output.lower():
+                parts = model_output.lower().split(pattern.lower(), 1)
+                if len(parts) > 1:
+                    # Extract potential diagnosis (text after pattern)
+                    potential_dx = parts[1].strip().split(".")[0]  # Take text until first period
+                    # Take first 5-7 words max
+                    words = potential_dx.split()
+                    if len(words) > 7:
+                        potential_dx = " ".join(words[:7])
+                    return potential_dx.capitalize()
+        
+        # If all else fails, use the first line or sentence
+        first_line = model_output.split('\n')[0].strip()
+        
+        # If the first line is too long, take the first sentence
+        if len(first_line) > 100:
+            first_sentence = first_line.split('.')[0].strip()
+            if first_sentence:
+                return first_sentence
+        
+        # If first line is reasonable length, use it
+        if first_line:
+            return first_line
+        
         return "Unknown"
-    
+    def _normalize_condition(self, condition):
+        """Normalize medical condition text for better matching"""
+        if not condition:
+            return ""
+            
+        # Convert to lowercase and strip whitespace
+        condition = condition.lower().strip()
+        
+        # Remove common prefixes/suffixes
+        prefixes = ["a case of ", "patient has ", "diagnosed with ", "diagnosis: ", "diagnosis of ", 
+                    "preliminary diagnosis: ", "assessment: ", "impression: ", "the patient has ",
+                    "possible ", "probable ", "likely ", "suspected "]
+        
+        for prefix in prefixes:
+            if condition.startswith(prefix):
+                condition = condition[len(prefix):]
+        
+        # Remove punctuation at the end
+        condition = condition.rstrip('.,;:')
+        
+        # Handle common abbreviations and synonyms
+        replacements = {
+            "diabetes mellitus type 2": "type 2 diabetes",
+            "diabetes mellitus type ii": "type 2 diabetes",
+            "dm2": "type 2 diabetes",
+            "t2dm": "type 2 diabetes",
+            "dm type 2": "type 2 diabetes",
+            "dm type ii": "type 2 diabetes",
+            "diabetes type 2": "type 2 diabetes",
+            "diabetes type ii": "type 2 diabetes",
+            "type ii diabetes": "type 2 diabetes",
+            "flu": "influenza",
+            "uri": "upper respiratory infection",
+            "mi": "myocardial infarction",
+            "heart attack": "myocardial infarction",
+            "htn": "hypertension",
+            "high blood pressure": "hypertension",
+            "copd": "chronic obstructive pulmonary disease",
+            "gerd": "gastroesophageal reflux disease",
+            "acid reflux": "gastroesophageal reflux disease"
+        }
+        
+        # Apply replacements
+        for old, new in replacements.items():
+            if condition == old:
+                condition = new
+        
+        # If condition is too long, take only the first 3 words
+        words = condition.split()
+        if len(words) > 5:
+            condition = " ".join(words[:5])
+        
+        return condition.strip()
+# Then calculate metrics using these normalized values    
     def calculate_medical_weighted_score(self, predictions, ground_truth, condition_weights=None):
         """
         Calculate weighted score based on medical significance
