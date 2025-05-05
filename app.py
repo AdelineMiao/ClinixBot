@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import base64
 from dotenv import load_dotenv
 from components.chat_interface import ChatInterface
 from components.visualization_dashboard import VisualizationDashboard
@@ -15,6 +16,11 @@ from translations import translations
 
 # 加载环境变量
 load_dotenv()
+
+# 添加函数来编码图像为base64
+def get_base64_encoded_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode('utf-8')
 
 # 配置页面
 st.set_page_config(
@@ -134,13 +140,14 @@ t = translations
 
 # 侧边栏菜单
 with st.sidebar:
-    # 替换图片为文本 logo
-    st.sidebar.markdown("""
-    <div style="text-align: center; background-color: #4B89DC; color: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
-        <h1 style="margin: 0; font-size: 28px;">🏥 ClinixBot</h1>
+    logo_path = "./ClinixBot.jpg"
+
+    st.sidebar.markdown(f"""
+    <div style="text-align: center; background-color: var(--secondary-color); color: var(--text-color); padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+        <img src="data:image/jpg;base64,{get_base64_encoded_image(logo_path)}" style="max-width: 180px;">
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.title(t.app[lang]["nav_menu"])
     
     # 语言选择器
